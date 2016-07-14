@@ -24,7 +24,7 @@ namespace MarkitRideShareApi
 				defaults: new { id = RouteParameter.Optional }
 			);
 
-			GlobalConfiguration.Configuration.Filters.Add(new BasicAuthenticationAttribute());
+			//GlobalConfiguration.Configuration.Filters.Add(new BasicAuthenticationAttribute());
 		}
 	}
 }

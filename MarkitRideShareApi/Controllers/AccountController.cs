@@ -1,78 +1,69 @@
-﻿using System;
+﻿using MarkitRideShareApi.Models;
+using System;
+using System.Configuration;
 using System.DirectoryServices;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Web.Http;
+using System.Web.Http.Cors;
 
 namespace MarkitRideShareApi.Controllers
 {
+	[EnableCors(origins: "*", headers: "*", methods: "*")]
 	public class AccountController : BaseApiController
 	{
-		[Route("api/account/login")]
-		[HttpPost]
-		public HttpResponseMessage Login([FromBody]string email, [FromBody]string password)
+		private readonly TokenService _tokenService;
+
+		public AccountController()
 		{
-			String domainAndUsername = "markit.com" + @"\" + "dhruv.tayal";
-			DirectoryEntry entry = new DirectoryEntry("LDAP://markit", domainAndUsername, "March$321");
-			bool status = true;
+			_tokenService = new TokenService();
+		}
+
+		[Route("api/account/login")]
+		[HttpGet]
+		public HttpResponseMessage Login()
+		{
+			string username = "dhruv.tayal";
+			string password = "June$321";
+			String domainAndUsername = "markit.com" + @"\" + username;
+			DirectoryEntry entry = new DirectoryEntry("LDAP://markit", domainAndUsername, password);
+
 			try
 			{	//Bind to the native AdsObject to force authentication.			
 				Object obj = entry.NativeObject;
 
 				DirectorySearcher search = new DirectorySearcher(entry);
 
-				search.Filter = "(SAMAccountName=" + "dhruv.tayal" + ")";
+				search.Filter = "(SAMAccountName=" + username + ")";
 				search.PropertiesToLoad.Add("cn");
 				SearchResult result = search.FindOne();
 
-				if (null == result)
+				if (null != result)
 				{
-					status = false;
+					return GetAuthToken(username);
 				}
-
-				//Update the new path to the user in the directory.
-				string path = result.Path;
-				string filterAttribute = (String)result.Properties["cn"][0];
-
-				DirectorySearcher search1 = new DirectorySearcher(path);
-				search.Filter = "(cn=" + filterAttribute + ")";
-				search.PropertiesToLoad.Add("memberOf");
-				StringBuilder groupNames = new StringBuilder();
-
-				SearchResult result1 = search.FindOne();
-
-				int propertyCount = result1.Properties["memberOf"].Count;
-
-				String dn;
-				int equalsIndex, commaIndex;
-
-				for (int propertyCounter = 0; propertyCounter < propertyCount; propertyCounter++)
-				{
-					dn = (String)result1.Properties["memberOf"][propertyCounter];
-
-					equalsIndex = dn.IndexOf("=", 1);
-					commaIndex = dn.IndexOf(",", 1);
-					if (-1 == equalsIndex)
-					{
-						return null;
-					}
-
-					groupNames.Append(dn.Substring((equalsIndex + 1), (commaIndex - equalsIndex) - 1));
-					groupNames.Append("|");
-				}
-
 			}
 			catch (Exception ex)
 			{
 				throw new Exception("Error authenticating user. " + ex.Message);
 			}
 
-			//return true;
+			var response = Request.CreateResponse(HttpStatusCode.Unauthorized);
+			return response;
+		}
 
+		/// <summary>
+		/// Returns auth token for the validated user.
+		/// </summary>
+		/// <param name="userId"></param>
+		/// <returns></returns>
+		private HttpResponseMessage GetAuthToken(string username)
+		{
+			TokenModel token = _tokenService.GenerateToken(username);
 			var jsonData = new
 			{
-				Result = status
+				Result = token
 			};
 
 			var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());

@@ -118,6 +118,7 @@
     </Compile>
     <Compile Include="MapUtility.cs" />
     <Compile Include="Models\EmployeeDetailModel.cs" />
+    <Compile Include="Models\TokenModel.cs" />
     <Compile Include="MongoConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -125,6 +126,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="TokenService.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
