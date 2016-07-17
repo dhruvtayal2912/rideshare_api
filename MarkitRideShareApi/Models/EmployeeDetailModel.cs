@@ -29,7 +29,7 @@ namespace MarkitRideShareApi.Models
 
 	public class EmployeeData
 	{
-		public string Id { get; set; }
+		//public string Id { get; set; }
 		public string Name { get; set; }
 		public string Email { get; set; }
 		public string Contact { get; set; }
@@ -39,23 +39,23 @@ namespace MarkitRideShareApi.Models
 		public string VehicleNo { get; set; }
 		public string ShiftStartTime { get; set; }
 		public string ShiftEndTime { get; set; }
-		public string UserType { get; set; } // Pooler = 1 & Seeker = 2
-		public string TravelFreq { get; set; } // Regular = 1 & Today = 2
-		public string Active { get; set; }
+		public string UserType { get; set; } // Pooler = 0 & Seeker = 1
+		public string TravelFreq { get; set; } // Regular = 0 & Today = 1
+		public string Active { get; set; } //Yes = 1 & No = 0
 		public int Radius { get; set; }
-		public string Gender { get; set; }
+		public string Gender { get; set; } // Male = 0 & Female = 1
 	}
 
 	public enum UserType
 	{
-		Pooler = 1,
-		Seeker = 2
+		Pooler = 0,
+		Seeker = 1
 	}
 
 	public enum TravelFrequency
 	{
-		Regular = 1,
-		Today = 2
+		Regular = 0,
+		Today = 1
 	}
 
 	public class Coordinates

@@ -110,6 +110,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\BaseApiController.cs" />
+    <Compile Include="Controllers\ProfileController.cs" />
     <Compile Include="Controllers\EmployeeDetailController.cs" />
     <Compile Include="Controllers\SearchController.cs" />
     <Compile Include="Controllers\UtilityController.cs" />

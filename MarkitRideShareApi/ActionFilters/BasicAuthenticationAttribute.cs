@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MarkitRideShareApi.Models;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +10,8 @@ namespace MarkitRideShareApi.ActionFilters
 {
 	public class BasicAuthenticationAttribute : ActionFilterAttribute
 	{
+		private readonly TokenService _tokenService = new TokenService();
+
 		public override void OnActionExecuting(System.Web.Http.Controllers.HttpActionContext actionContext)
 		{
 			try
@@ -18,13 +22,9 @@ namespace MarkitRideShareApi.ActionFilters
 				}
 				else
 				{
-					Dictionary<string, string> credentials = ParseRequestHeaders(actionContext);
+					TokenModel token = ParseRequestHeaders(actionContext);
 
-					if (IsUserValid(credentials))
-					{
-						actionContext.Response = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK);
-					}
-					else
+					if (!_tokenService.ValidateToken(token))
 					{
 						actionContext.Response = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
 					}
@@ -34,31 +34,19 @@ namespace MarkitRideShareApi.ActionFilters
 			{
 				actionContext.Response = new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError);
 			}
+
+			//base.OnActionExecuting(actionContext);
 		}
 
-		private Boolean IsUserValid(Dictionary<string, string> credentials)
+		private TokenModel ParseRequestHeaders(System.Web.Http.Controllers.HttpActionContext actionContext)
 		{
-			if (credentials["UserName"].Equals("joydip") && credentials["Password"].Equals("joydip123"))
-				return true;
-
-			return false;
-		}
-
-		private Dictionary<string, string> ParseRequestHeaders(System.Web.Http.Controllers.HttpActionContext actionContext)
-		{
-			Dictionary<string, string> credentials = new Dictionary<string, string>();
-
 			var httpRequestHeader = actionContext.Request.Headers.GetValues("Authorization").FirstOrDefault();
-			httpRequestHeader = httpRequestHeader.Substring("Authorization".Length);
-			string[] httpRequestHeaderValues = httpRequestHeader.Split(':');
+			httpRequestHeader = httpRequestHeader.Substring("Basic ".Length);
 
-			string username = Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestHeaderValues[0]));
-			string password = Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestHeaderValues[1]));
+			string TokenModel = Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestHeader));
+			TokenModel token = JsonConvert.DeserializeObject<TokenModel>(TokenModel);
 
-			credentials.Add("UserName", username);
-			credentials.Add("Password", password);
-			return credentials;
-
+			return token;
 		}
 	}
 }

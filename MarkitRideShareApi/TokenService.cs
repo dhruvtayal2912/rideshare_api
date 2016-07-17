@@ -9,6 +9,7 @@ using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
+using System.Web.Script.Serialization;
 
 namespace MarkitRideShareApi
 {
@@ -19,8 +20,8 @@ namespace MarkitRideShareApi
 		public TokenModel GenerateToken(string username)
 		{
 			string token = Guid.NewGuid().ToString();
-			DateTime issuedOn = DateTime.Now;
-			DateTime expiredOn = DateTime.Now.AddSeconds(Convert.ToDouble(ConfigurationManager.AppSettings["AuthTokenExpiry"]));
+			string issuedOn = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+			string expiredOn = DateTime.Now.AddSeconds(Convert.ToDouble(ConfigurationManager.AppSettings["AuthTokenExpiry"])).ToString("yyyy-MM-dd HH:mm:ss");
 			var tokenModel = new TokenModel()
 			{
 				UserName = username,
@@ -32,30 +33,46 @@ namespace MarkitRideShareApi
 			try
 			{
 				var jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict };
-				BsonDocument doc = BsonSerializer.Deserialize<BsonDocument>(tokenModel.ToJson());
+				BsonDocument doc = BsonSerializer.Deserialize<BsonDocument>(tokenModel.ToJson(jsonWriterSettings));
 
 				tokenCollection.InsertOneAsync(doc);			
 			}
 			catch(System.Exception ex)
 			{
-				throw new Exception("Error occured while inserting token" + ex.Message);
+				//throw new Exception("Error occured while inserting token" + ex.Message);
+				return null;
 			}
 
 			return tokenModel;
 		}
 
-		//public bool ValidateToken(string tokenId)
-		//{
-		//	//var token = _unitOfWork.TokenRepository.Get(t => t.AuthToken == tokenId && t.ExpiresOn > DateTime.Now); // fetch token from db
-		//	if (token != null && !(DateTime.Now > token.ExpiresOn))
-		//	{
-		//		token.ExpiresOn = token.ExpiresOn.AddSeconds(Convert.ToDouble(ConfigurationManager.AppSettings["AuthTokenExpiry"]));
-		//		_unitOfWork.TokenRepository.Update(token);
-		//		_unitOfWork.Save();
-		//		return true;
-		//	}
-		//	return false;
-		//}
+		public bool ValidateToken(TokenModel token)
+		{
+			var filter = Builders<BsonDocument>.Filter.Eq("AuthToken", token.AuthToken);
+			var projection = Builders<BsonDocument>.Projection.Exclude("_id");
+
+			var docs = tokenCollection.Find(filter).Project(projection).ToList();
+			TokenModel existingToken = Newtonsoft.Json.JsonConvert.DeserializeObject<TokenModel>(docs[0].ToJson());
+
+			DateTime existingTokenExpiresOn = Convert.ToDateTime(existingToken.ExpiresOn);
+
+			if (existingToken != null && !(DateTime.Now > existingTokenExpiresOn))
+			{
+				existingToken.ExpiresOn = existingTokenExpiresOn.AddSeconds(
+					Convert.ToDouble(ConfigurationManager.AppSettings["AuthTokenExpiry"])).ToString("yyyy-MM-dd HH:mm:ss");
+				try
+				{
+					BsonDocument doc = BsonSerializer.Deserialize<BsonDocument>(existingToken.ToJson());
+					tokenCollection.ReplaceOneAsync(filter, doc);
+				}
+				catch (System.Exception ex)
+				{
+					throw new Exception("Error occured while inserting token" + ex.Message);
+				}
+				return true;
+			}
+			return false;
+		}
 
 		//public bool Kill(string tokenId)
 		//{

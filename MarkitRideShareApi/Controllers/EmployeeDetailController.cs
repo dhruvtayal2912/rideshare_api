@@ -18,12 +18,13 @@ using GoogleMaps.LocationServices;
 
 namespace MarkitRideShareApi.Controllers
 {
-	//[EnableCors(origins: "*", headers: "*", methods: "*")]
+	[EnableCors(origins: "*", headers: "*", methods: "*")]
 	[RoutePrefix("api/employeedetail")]
+	[BasicAuthentication]
 	public class EmployeeDetailController : BaseApiController
     {
 		private EmployeeDetailModel EmployeeDetailModel;
-		private IMongoCollection<BsonDocument> EmpDetailsCollection = MongoConfig.MongoDatabase.GetCollection<BsonDocument>("EmployeeDetails");
+		//private IMongoCollection<BsonDocument> EmpDetailsCollection = MongoConfig.MongoDatabase.GetCollection<BsonDocument>("EmployeeDetails");
 
 		public EmployeeDetailController()
 		{
@@ -37,12 +38,13 @@ namespace MarkitRideShareApi.Controllers
         }
 
 		//TODO: remove looged in user from the returned result.
-		//[BasicAuthentication]
 		[Route("firsttimeempdata/{email}")]
 		[HttpGet]
 		public async Task<HttpResponseMessage> FirstTimeEmpData([FromUri]string email)
         {
-			var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).ToListAsync();
+			var projection = Builders<BsonDocument>.Projection.Exclude("_id");
+
+			var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).Project(projection).ToListAsync();
 			List<EmployeeData> allEmpDataList = BsonSerializer.Deserialize<List<EmployeeData>>(allEmpDatadocs.ToJson());
 
 			EmployeeData loggedInEmpData = allEmpDataList.Where(e => e.Email == email).FirstOrDefault();
@@ -64,7 +66,9 @@ namespace MarkitRideShareApi.Controllers
         {
 			try
 			{
-				var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).ToListAsync();
+				var projection = Builders<BsonDocument>.Projection.Exclude("_id");
+				var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).Project(projection).ToListAsync();
+
 				List<EmployeeData> allEmpDataList = BsonSerializer.Deserialize<List<EmployeeData>>(allEmpDatadocs.ToJson());
 
 				EmployeeData loggedInEmpData = allEmpDataList.Where(e => e.Email == "gurpreet.kaur1@markit.com").FirstOrDefault();
@@ -90,7 +94,6 @@ namespace MarkitRideShareApi.Controllers
 			}
         }
 
-		[BasicAuthentication]
 		[Route("getbyaddress/{address}")]
 		[HttpGet]
 		public async Task<HttpResponseMessage> GetByAddress([FromUri]string address)
@@ -120,10 +123,46 @@ namespace MarkitRideShareApi.Controllers
 			}
 		}
 
-        // PUT api/employeedetail/5
-        public void Put(int id, [FromBody]string value)
+		[Route("createprofile")]
+		[HttpPost]
+		public async Task<HttpResponseMessage> CreateProfile([FromBody]EmployeeData profileData)
         {
+			try
+			{
+				var locationService = new GoogleLocationService();
+				profileData.Latitude = Convert.ToString(locationService.GetLatLongFromAddress(profileData.Address).Latitude);
+				profileData.Longitude = Convert.ToString(locationService.GetLatLongFromAddress(profileData.Address).Longitude);
+
+				profileData.UserType = profileData.VehicleNo != null ?  "0" : "1";
+
+				BsonDocument doc = BsonSerializer.Deserialize<BsonDocument>(profileData.ToJson());
+				await EmpDetailsCollection.InsertOneAsync(doc);
+
+				var response = Request.CreateResponse(HttpStatusCode.OK, "Profile has been created successfully.", GenerateJsonFormatting());
+				response.Content.Headers.ContentType = GenerateMediaType();
+				return response;
+			}
+			catch
+			{
+				return Request.CreateErrorResponse(HttpStatusCode.NotModified, new HttpError("There is some problem at the moment. Please try again."));
+			}
         }
+
+		[Route("hasprofile")]
+		[HttpGet]
+		public HttpResponseMessage HasProfile(string username)
+		{
+			bool hasProfile = ExistingUser(username);
+
+			var jsonData = new
+			{
+				Result = hasProfile
+			};
+
+			var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
+			response.Content.Headers.ContentType = GenerateMediaType();
+			return response;
+		}
 
         // DELETE api/employeedetail/5
         public void Delete(int id)

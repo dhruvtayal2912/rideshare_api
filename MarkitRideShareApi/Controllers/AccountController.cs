@@ -1,4 +1,6 @@
 ﻿using MarkitRideShareApi.Models;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using System;
 using System.Configuration;
 using System.DirectoryServices;
@@ -22,10 +24,10 @@ namespace MarkitRideShareApi.Controllers
 
 		[Route("api/account/login")]
 		[HttpGet]
-		public HttpResponseMessage Login()
+		public HttpResponseMessage Login(string username, string password)
 		{
-			string username = "dhruv.tayal";
-			string password = "June$321";
+			username = "dhruv.tayal";
+			password = "June$321";
 			String domainAndUsername = "markit.com" + @"\" + username;
 			DirectoryEntry entry = new DirectoryEntry("LDAP://markit", domainAndUsername, password);
 
@@ -41,16 +43,37 @@ namespace MarkitRideShareApi.Controllers
 
 				if (null != result)
 				{
-					return GetAuthToken(username);
+					TokenModel token = _tokenService.GenerateToken(username); //create token
+					bool hasProfile = ExistingUser(username);
+
+					if (token != null)
+					{
+						var jsonData = new
+						{
+							Token = token,
+							HasProfile = hasProfile, // TODO: hasProfile
+							ExistingProfileData = !hasProfile ? new { Name = result.Properties["cn"][0], Email = username + "@markit.com" } : null // TODO: !hasProfile
+						};
+
+						var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
+						response.Content.Headers.ContentType = GenerateMediaType();
+						return response;
+					}
+					else
+					{
+						return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "There is some problem at the moment. Please try again.");
+					}
+				}
+				else
+				{
+					var response = Request.CreateErrorResponse(HttpStatusCode.Unauthorized, "The username or password is invalid.");
+					return response;
 				}
 			}
-			catch (Exception ex)
+			catch
 			{
-				throw new Exception("Error authenticating user. " + ex.Message);
+				return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "There is some problem at the moment. Please try again.");
 			}
-
-			var response = Request.CreateResponse(HttpStatusCode.Unauthorized);
-			return response;
 		}
 
 		/// <summary>
@@ -58,17 +81,17 @@ namespace MarkitRideShareApi.Controllers
 		/// </summary>
 		/// <param name="userId"></param>
 		/// <returns></returns>
-		private HttpResponseMessage GetAuthToken(string username)
-		{
-			TokenModel token = _tokenService.GenerateToken(username);
-			var jsonData = new
-			{
-				Result = token
-			};
+		//private HttpResponseMessage GetAuthToken(string username)
+		//{
+		//	TokenModel token = _tokenService.GenerateToken(username);
+		//	var jsonData = new
+		//	{
+		//		Result = token
+		//	};
 
-			var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
-			response.Content.Headers.ContentType = GenerateMediaType();
-			return response;
-		}
+		//	var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
+		//	response.Content.Headers.ContentType = GenerateMediaType();
+		//	return response;
+		//}
 	}
 }
