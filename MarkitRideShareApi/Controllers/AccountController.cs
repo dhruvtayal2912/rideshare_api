@@ -13,6 +13,7 @@ using System.Web.Http.Cors;
 namespace MarkitRideShareApi.Controllers
 {
 	[EnableCors(origins: "*", headers: "*", methods: "*")]
+	[RoutePrefix("api/account")]
 	public class AccountController : BaseApiController
 	{
 		private readonly TokenService _tokenService;
@@ -22,12 +23,12 @@ namespace MarkitRideShareApi.Controllers
 			_tokenService = new TokenService();
 		}
 
-		[Route("api/account/login")]
+		[Route("login")]
 		[HttpGet]
 		public HttpResponseMessage Login(string username, string password)
 		{
-			username = "dhruv.tayal";
-			password = "June$321";
+			//username = "dhruv.tayal";
+			//password = "June$321";
 			String domainAndUsername = "markit.com" + @"\" + username;
 			DirectoryEntry entry = new DirectoryEntry("LDAP://markit", domainAndUsername, password);
 
@@ -52,7 +53,7 @@ namespace MarkitRideShareApi.Controllers
 						{
 							Token = token,
 							HasProfile = hasProfile, // TODO: hasProfile
-							ExistingProfileData = !hasProfile ? new { Name = result.Properties["cn"][0], Email = username + "@markit.com" } : null // TODO: !hasProfile
+							ExistingProfileData = new { Name = result.Properties["cn"][0], Email = username + "@markit.com" } // TODO: !hasProfile
 						};
 
 						var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
@@ -76,22 +77,23 @@ namespace MarkitRideShareApi.Controllers
 			}
 		}
 
-		/// <summary>
-		/// Returns auth token for the validated user.
-		/// </summary>
-		/// <param name="userId"></param>
-		/// <returns></returns>
-		//private HttpResponseMessage GetAuthToken(string username)
-		//{
-		//	TokenModel token = _tokenService.GenerateToken(username);
-		//	var jsonData = new
-		//	{
-		//		Result = token
-		//	};
+		[Route("logout")]
+		[HttpPost]
+		public HttpResponseMessage Logout([FromBody]TokenModel token)
+		{
+			bool deleted = _tokenService.DeleteToken(token);
+			var jsonData = new
+			{
+				IsDeleted = deleted ? true : false				
+			};
 
-		//	var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
-		//	response.Content.Headers.ContentType = GenerateMediaType();
-		//	return response;
-		//}
+			if(deleted)
+			{
+				var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());
+				response.Content.Headers.ContentType = GenerateMediaType();
+				return response;
+			}
+			return Request.CreateErrorResponse(HttpStatusCode.NotModified, "There is some problem at the moment. Please try again.");
+		}
 	}
 }

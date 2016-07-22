@@ -128,9 +128,32 @@ namespace MarkitRideShareApi
 			
 		}
 
+		public static bool RedirectionUrlValidationCallback(string redirectionUrl)
+		{
+			// The default for the validation callback is to reject the URL.
+			bool result = false;
+
+			Uri redirectionUri = new Uri(redirectionUrl);
+
+			// Validate the contents of the redirection URL. In this simple validation
+			// callback, the redirection URL is considered valid if it is using HTTPS
+			// to encrypt the authentication credentials. 
+			if (redirectionUri.Scheme == "https")
+			{
+				result = true;
+			}
+			return result;
+		}
+
 		public static string GetEvenOdd(string vehicleNo)
 		{
-			return (Convert.ToInt32(vehicleNo.Substring(vehicleNo.Length - 1)) % 2).ToString();
+			if (!string.IsNullOrEmpty(vehicleNo))
+			{
+
+				return Char.IsDigit(vehicleNo.Substring(vehicleNo.Length - 1)[0]) ? (Convert.ToInt32(vehicleNo.Substring(vehicleNo.Length - 1)) % 2).ToString() : String.Empty;
+			}
+			else
+				return string.Empty;
 		}
 	}
 }

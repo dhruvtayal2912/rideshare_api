@@ -19,6 +19,22 @@ namespace MarkitRideShareApi
 
 		public TokenModel GenerateToken(string username)
 		{
+			//first delete existing token if available
+			var filter = Builders<BsonDocument>.Filter.Eq("UserName", username);
+			var projection = Builders<BsonDocument>.Projection.Exclude("_id");
+
+			var docs = tokenCollection.Find(filter).Project(projection).ToList();
+
+			if (docs != null && docs.Count > 0)
+			{
+				TokenModel existingToken = Newtonsoft.Json.JsonConvert.DeserializeObject<TokenModel>(docs[0].ToJson());
+
+				bool deleted = DeleteToken(existingToken);
+				if (!deleted)
+					return null;
+			}
+
+			//then create a new token
 			string token = Guid.NewGuid().ToString();
 			string issuedOn = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 			string expiredOn = DateTime.Now.AddSeconds(Convert.ToDouble(ConfigurationManager.AppSettings["AuthTokenExpiry"])).ToString("yyyy-MM-dd HH:mm:ss");
@@ -70,29 +86,18 @@ namespace MarkitRideShareApi
 					throw new Exception("Error occured while inserting token" + ex.Message);
 				}
 				return true;
-			}
+			}			
 			return false;
 		}
 
-		//public bool Kill(string tokenId)
-		//{
-		//	_unitOfWork.TokenRepository.Delete(x => x.AuthToken == tokenId);
-		//	_unitOfWork.Save();
-		//	var isNotDeleted = _unitOfWork.TokenRepository.GetMany(x => x.AuthToken == tokenId).Any();
-		//	if (isNotDeleted) { return false; }
-		//	return true;
-		//}
-
-		public bool DeleteByUserName(int username)
+		public bool DeleteToken(TokenModel token)
 		{
-			//delete token in mongodb
-			//_unitOfWork.TokenRepository.Delete(x => x.UserId == userId);
-			//_unitOfWork.Save();
+			var filter = Builders<BsonDocument>.Filter.Eq("AuthToken", token.AuthToken);
+			var projection = Builders<BsonDocument>.Projection.Exclude("_id");
 
-			//var isNotDeleted = _unitOfWork.TokenRepository.GetMany(x => x.UserId == userId).Any();
-			//return !isNotDeleted;
+			var result = tokenCollection.DeleteOneAsync(filter);
 
-			return false;
+			return (result.Result.DeletedCount > 0) ? true : false;			
 		}
 	}
 }

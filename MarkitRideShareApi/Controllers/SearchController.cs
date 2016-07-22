@@ -14,11 +14,10 @@ using System.Web.Http.Cors;
 
 namespace MarkitRideShareApi.Controllers
 {
-	//[EnableCors(origins: "*", headers: "*", methods: "*")]
+	[EnableCors(origins: "*", headers: "*", methods: "*")]
 	public class SearchController : BaseApiController
     {
 		private EmployeeDetailModel EmployeeDetailModel;
-		private IMongoCollection<BsonDocument> EmpDetailsCollection = MongoConfig.MongoDatabase.GetCollection<BsonDocument>("EmployeeDetails");
 
 		public SearchController()
 		{
@@ -41,19 +40,19 @@ namespace MarkitRideShareApi.Controllers
 			//{
 			//	var JsonDe = JsonConvert.DeserializeObject<EmployeeData>(empData);
 			//}
-			//var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).ToListAsync();
-			//List<EmployeeData> allEmpDataList = BsonSerializer.Deserialize<List<EmployeeData>>(allEmpDatadocs.ToJson());
+			var allEmpDatadocs = await EmpDetailsCollection.Find(_ => true).ToListAsync();
+			List<EmployeeData> allEmpDataList = BsonSerializer.Deserialize<List<EmployeeData>>(allEmpDatadocs.ToJson());
 
-			//EmployeeData loggedInEmpData = allEmpDataList.Where(e => e.Email == "gurpreet.kaur1@markit.com").FirstOrDefault();
+			EmployeeData loggedInEmpData = allEmpDataList.Where(e => e.Email == "gurpreet.kaur1@markit.com").FirstOrDefault();
 
-			//var filteredData = allEmpDataList.Where(e => e.TravelFreq == (string.IsNullOrEmpty(empData.TravelFreq) ? e.TravelFreq : empData.TravelFreq)
-			//	&& e.UserType == (string.IsNullOrEmpty(empData.UserType) ? e.UserType : empData.UserType)
-			//	&& e.VehicleNo == (string.IsNullOrEmpty(empData.VehicleNo) ? e.VehicleNo : empData.VehicleNo)
-			//	&& MapUtility.distance(Convert.ToDouble(e.Latitude), Convert.ToDouble(e.Longitude), Convert.ToDouble(loggedInEmpData.Latitude), Convert.ToDouble(loggedInEmpData.Longitude), "K") < empData.Radius).ToList();
+			var filteredData = allEmpDataList.Where(e => e.TravelFreq == (string.IsNullOrEmpty(empData.TravelFreq) ? e.TravelFreq : empData.TravelFreq)
+				&& e.UserType == (string.IsNullOrEmpty(empData.UserType) ? e.UserType : empData.UserType)
+				&& e.VehicleNo == (string.IsNullOrEmpty(empData.VehicleNo) ? e.VehicleNo : empData.VehicleNo)
+				&& MapUtility.distance(Convert.ToDouble(e.Latitude), Convert.ToDouble(e.Longitude), Convert.ToDouble(loggedInEmpData.Latitude), Convert.ToDouble(loggedInEmpData.Longitude), "K") < empData.Radius).ToList();
 
 			var jsonData = new
 			{
-				Result = empData.ToJson()
+				Result = "test"
 			};
 
 			var response = Request.CreateResponse(HttpStatusCode.OK, jsonData, GenerateJsonFormatting());

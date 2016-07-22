@@ -42,8 +42,10 @@ namespace MarkitRideShareApi.Models
 		public string UserType { get; set; } // Pooler = 0 & Seeker = 1
 		public string TravelFreq { get; set; } // Regular = 0 & Today = 1
 		public string Active { get; set; } //Yes = 1 & No = 0
+		public string HasParking { get; set; }
 		public int Radius { get; set; }
 		public string Gender { get; set; } // Male = 0 & Female = 1
+		public string Image { get; set; }
 	}
 
 	public enum UserType
