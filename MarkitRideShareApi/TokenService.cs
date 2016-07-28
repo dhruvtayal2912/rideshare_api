@@ -23,15 +23,19 @@ namespace MarkitRideShareApi
 			var filter = Builders<BsonDocument>.Filter.Eq("UserName", username);
 			var projection = Builders<BsonDocument>.Projection.Exclude("_id");
 
-			var docs = tokenCollection.Find(filter).Project(projection).ToList();
 
-			if (docs != null && docs.Count > 0)
+			if (tokenCollection.Find(filter).Project(projection) != null)
 			{
-				TokenModel existingToken = Newtonsoft.Json.JsonConvert.DeserializeObject<TokenModel>(docs[0].ToJson());
+				var docs = tokenCollection.Find(filter).Project(projection).ToList();
 
-				bool deleted = DeleteToken(existingToken);
-				if (!deleted)
-					return null;
+				if (docs != null && docs.Count > 0)
+				{
+					TokenModel existingToken = Newtonsoft.Json.JsonConvert.DeserializeObject<TokenModel>(docs[0].ToJson());
+
+					bool deleted = DeleteToken(existingToken);
+					if (!deleted)
+						return null;
+				}
 			}
 
 			//then create a new token
@@ -55,8 +59,8 @@ namespace MarkitRideShareApi
 			}
 			catch(System.Exception ex)
 			{
-				//throw new Exception("Error occured while inserting token" + ex.Message);
-				return null;
+				throw new Exception("Error occured while inserting token" + ex.Message);
+				//return null;
 			}
 
 			return tokenModel;
